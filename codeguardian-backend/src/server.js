@@ -6,20 +6,39 @@ const manualRoutes = require('./routes/manual');
 
 const app = express();
 
-// Enable CORS for all origins
+// ─────────────────────────────────────────────
+// Global middleware
+// ─────────────────────────────────────────────
+
+// Enable CORS for all origins (frontend runs on port 5173)
 app.use(cors());
-app.use(express.json());
 
+// Parse JSON bodies for all non-webhook routes.
+// NOTE: /webhook uses express.raw() internally to preserve the raw buffer
+// needed for HMAC signature validation — do NOT apply express.json() to it.
+app.use((req, res, next) => {
+  if (req.path === '/webhook') return next();
+  express.json()(req, res, next);
+});
+
+// ─────────────────────────────────────────────
 // Routes
-app.use('/webhook', webhookRoutes);
-app.use('/manual', manualRoutes);
+// ─────────────────────────────────────────────
 
-// Health check route
+// GitHub webhook — handles its own body parsing (raw bytes for HMAC)
+app.use('/webhook', webhookRoutes);
+
+// Manual analysis + review listing
+app.use('/', manualRoutes);
+
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Start the server
+// ─────────────────────────────────────────────
+// Start server
+// ─────────────────────────────────────────────
 app.listen(config.PORT, () => {
   console.log(`CodeGuardian Backend server running on port ${config.PORT}`);
 });
