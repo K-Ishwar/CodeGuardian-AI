@@ -22,6 +22,7 @@ export default function App() {
   const { reviews, loading, refetch, connected } = useReviews();
   const [selectedId, setSelectedId] = useState(null);
   const [manualLoading, setManualLoading] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(false);
 
   // Auto-select first review on initial load
   useEffect(() => {
@@ -29,6 +30,15 @@ export default function App() {
       setSelectedId(reviews[0].id);
     }
   }, [reviews, selectedId]);
+
+  // Toggle light-mode class on root element
+  useEffect(() => {
+    if (isLightMode) {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
+  }, [isLightMode]);
 
   const selectedReview = reviews.find((r) => r.id === selectedId) ?? null;
 
@@ -54,14 +64,17 @@ export default function App() {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        backgroundColor: 'var(--color-bg-primary)',
+        backgroundColor: 'transparent',
         overflow: 'hidden',
-        // Make space for the fixed bottom bar
-        paddingBottom: '60px', 
       }}
     >
       {/* ── Top metric bar ── */}
-      <Header reviews={reviews} connected={connected} />
+      <Header 
+        reviews={reviews} 
+        connected={connected} 
+        isLightMode={isLightMode} 
+        setIsLightMode={setIsLightMode} 
+      />
 
       {/* ── Two-column main area ── */}
       <main
@@ -71,13 +84,16 @@ export default function App() {
           overflow: 'hidden',
         }}
       >
-        {/* Left panel — PR list */}
-        <div style={{ width: '40%', borderRight: '1px solid var(--color-bg-border)' }}>
-          <ReviewList
-            reviews={reviews}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
+        {/* Left panel — PR list and Manual Input */}
+        <div style={{ width: '40%', borderRight: '1px solid var(--color-bg-border)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <ReviewList
+              reviews={reviews}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+          </div>
+          <ManualInput onSubmit={handleManualSubmit} loading={manualLoading} />
         </div>
 
         {/* Right panel — PR detail */}
@@ -85,9 +101,6 @@ export default function App() {
           <ReviewDetail review={selectedReview} />
         </div>
       </main>
-
-      {/* ── Fixed bottom input bar ── */}
-      <ManualInput onSubmit={handleManualSubmit} loading={manualLoading} />
     </div>
   );
 }

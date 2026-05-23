@@ -26,8 +26,8 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
       style={{
         height: '100%',
         overflowY: 'auto',
-        backgroundColor: 'var(--color-bg-primary)',
-        borderRight: '1px solid var(--color-bg-border)',
+        backgroundColor: 'transparent',
+        borderRight: '1px solid var(--color-glass-border)',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -36,14 +36,16 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
       <div
         style={{
           padding: '12px 16px',
-          borderBottom: '1px solid var(--color-bg-border)',
+          borderBottom: '1px solid var(--color-glass-border)',
           color: 'var(--color-text-secondary)',
           fontSize: '0.75rem',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           position: 'sticky',
           top: 0,
-          backgroundColor: 'var(--color-bg-primary)',
+          backgroundColor: 'var(--color-glass-panel)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           zIndex: 10,
         }}
       >
@@ -87,17 +89,29 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
             key={review.id}
             onClick={() => onSelect(review.id)}
             style={{
-              backgroundColor: isSelected ? 'var(--color-bg-card)' : 'transparent',
-              borderBottom: '1px solid var(--color-bg-border)',
+              backgroundColor: isSelected ? 'var(--color-glass-selected)' : 'transparent',
+              borderBottom: '1px solid var(--color-glass-border)',
+              borderLeft: isSelected ? '3px solid var(--color-accent-blue)' : '3px solid transparent',
+              backdropFilter: isSelected ? 'blur(12px)' : 'none',
+              WebkitBackdropFilter: isSelected ? 'blur(12px)' : 'none',
               padding: '12px 16px',
               cursor: 'pointer',
-              transition: 'background-color 0.15s',
+              transition: 'all 0.2s ease',
+              boxShadow: isSelected ? 'inset 0 0 16px var(--color-glass-hover)' : 'none',
             }}
             onMouseEnter={(e) => {
-              if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--color-bg-panel)';
+              if (!isSelected) {
+                e.currentTarget.style.backgroundColor = 'var(--color-glass-hover)';
+                e.currentTarget.style.backdropFilter = 'blur(12px)';
+                e.currentTarget.style.WebkitBackdropFilter = 'blur(12px)';
+              }
             }}
             onMouseLeave={(e) => {
-              if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+              if (!isSelected) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.backdropFilter = 'none';
+                e.currentTarget.style.WebkitBackdropFilter = 'none';
+              }
             }}
           >
             {/* Top line: Repo & Status */}

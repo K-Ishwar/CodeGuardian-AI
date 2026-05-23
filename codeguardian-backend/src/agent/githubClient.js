@@ -54,6 +54,7 @@ async function fetchPRMetadata(owner, repo, pull_number) {
       author: data.user.login,
       base_branch: data.base.ref,
       head_branch: data.head.ref,
+      head_sha: data.head.sha,
       pr_url: data.html_url,
     };
   } catch (err) {
@@ -120,9 +121,46 @@ async function postReviewComment(owner, repo, pull_number, reviewBody) {
   }
 }
 
+/**
+ * Posts a line-level comment on a Pull Request.
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} pull_number
+ * @param {string} commit_id
+ * @param {string} path
+ * @param {number} line
+ * @param {string} body
+ * @returns {object|null}
+ */
+async function postLineComment(owner, repo, pull_number, commit_id, path, line, body) {
+  try {
+    if (!GITHUB_TOKEN) {
+      console.warn('GitHubClient warning: GITHUB_TOKEN not set. Skipping line comment.');
+      return null;
+    }
+
+    const { data } = await axios.post(
+      `${BASE_URL}/repos/${owner}/${repo}/pulls/${pull_number}/comments`,
+      {
+        body,
+        commit_id,
+        path,
+        line,
+        side: 'RIGHT'
+      },
+      { headers: defaultHeaders() }
+    );
+    return data;
+  } catch (err) {
+    console.error(`GitHubClient error in postLineComment (file: ${path}, line: ${line}):`, err.response?.data?.message || err.message);
+    throw new Error(`GitHubClient error in postLineComment: ${err.message}`);
+  }
+}
+
 module.exports = {
   parsePRUrl,
   fetchPRMetadata,
   fetchPRDiff,
   postReviewComment,
+  postLineComment,
 };

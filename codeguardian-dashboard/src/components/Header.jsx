@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Sun, Moon } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Header — top metric bar
@@ -17,7 +18,7 @@ function Clock() {
   return <span>{timeString}</span>;
 }
 
-export default function Header({ reviews = [], connected = true }) {
+export default function Header({ reviews = [], connected = true, isLightMode, setIsLightMode }) {
   // Compute metrics
   const totalReviews = reviews.length;
   
@@ -38,8 +39,10 @@ export default function Header({ reviews = [], connected = true }) {
   return (
     <header
       style={{
-        backgroundColor: 'var(--color-bg-panel)',
-        borderBottom: '1px solid var(--color-bg-border)',
+        backgroundColor: 'var(--color-glass-panel)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid var(--color-glass-border)',
         padding: '16px 24px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -98,15 +101,35 @@ export default function Header({ reviews = [], connected = true }) {
         <MetricChip label="Debt Recovered" value={`$${totalDebtRecovered.toFixed(0)}`} />
         <MetricChip label="Avg Latency" value={avgLatency} />
         
-        {/* System Time */}
-        <div
-          style={{
-            marginLeft: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-          }}
-        >
+        {/* Theme Toggle & System Time */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '12px' }}>
+          <button
+            onClick={() => setIsLightMode?.(!isLightMode)}
+            style={{
+              background: 'var(--color-glass-border)',
+              border: '1px solid var(--color-glass-border-strong)',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--color-text-primary)',
+              transition: 'all 0.2s',
+            }}
+            title={isLightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {isLightMode ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+            }}
+          >
           <span
             style={{
               color: 'var(--color-text-secondary)',
@@ -129,6 +152,7 @@ export default function Header({ reviews = [], connected = true }) {
           </span>
         </div>
       </div>
+      </div>
     </header>
   );
 }
@@ -137,17 +161,31 @@ export default function Header({ reviews = [], connected = true }) {
 // MetricChip component
 // ---------------------------------------------------------------------------
 function MetricChip({ label, value }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
-        backgroundColor: 'var(--color-bg-card)',
-        border: '1px solid var(--color-bg-border)',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        borderLeft: '1px solid rgba(255,255,255,0.02)',
+        borderRight: '1px solid rgba(255,255,255,0.02)',
+        borderBottom: '1px solid rgba(255,255,255,0.02)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         borderRadius: '6px',
         padding: '8px 12px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
         minWidth: '120px',
+        boxShadow: isHovered 
+          ? '0 0 24px rgba(106, 90, 205, 0.25), inset 0 0 12px rgba(106, 90, 205, 0.15)' // Soft Slate Blue LED glow
+          : '0 4px 6px rgba(0,0,0,0.1)',
+        transition: 'all 0.3s ease',
+        cursor: 'default',
       }}
     >
       <span
@@ -157,6 +195,8 @@ function MetricChip({ label, value }) {
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           marginBottom: '4px',
+          textShadow: isHovered ? '0 0 8px rgba(255,255,255,0.3)' : 'none',
+          transition: 'text-shadow 0.3s ease',
         }}
       >
         {label}
@@ -165,8 +205,12 @@ function MetricChip({ label, value }) {
         style={{
           color: 'var(--color-accent-blue)',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.875rem',
+          fontSize: '1.25rem',
           fontWeight: 'bold',
+          textShadow: isHovered 
+            ? '0 0 12px var(--color-accent-blue), 0 0 4px var(--color-accent-blue)' 
+            : '0 0 4px var(--color-accent-blue)',
+          transition: 'text-shadow 0.3s ease',
         }}
       >
         {value}

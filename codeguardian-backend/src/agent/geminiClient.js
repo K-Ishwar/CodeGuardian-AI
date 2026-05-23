@@ -4,24 +4,30 @@ const { GEMINI_API_KEY } = require('../config');
 
 const MODEL_NAME = 'gemini-2.5-flash';
 
-const SYSTEM_PROMPT = `You are CodeGuardian, an expert code review AI. Analyze the provided code diff and identify ALL issues. You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks. Just the raw JSON array.
-
+const COMMON_JSON_SCHEMA = `
 Each issue object MUST have exactly these fields:
 {
-  title: string (short, clear issue name),
-  severity: exactly one of: Critical | Moderate | Low,
-  filename: string (which file this is in),
-  time_to_fix: integer (estimated minutes to fix, be realistic: Critical=30-60, Moderate=10-20, Low=5-10),
-  explanation: string (2-3 sentences explaining why this is a problem),
-  patch_suggestion: string (the corrected code line or block, just the code, no markdown)
+  "title": "string (short, clear issue name)",
+  "severity": "Critical | Moderate | Low",
+  "filename": "string (which file this is in)",
+  "line": "integer (the exact line number in the modified file where this issue occurs, use your best guess from the diff context)",
+  "time_to_fix": "integer (estimated minutes to fix)",
+  "explanation": "string (2-3 sentences explaining why this is a problem)",
+  "patch_suggestion": "string (the corrected code line or block, just the code, no markdown)"
 }
-
-Severity guide:
-- Critical: security vulnerabilities, hardcoded secrets, SQL injection, auth bypass, data exposure
-- Moderate: performance issues, missing error handling, code smells, memory leaks
-- Low: naming conventions, unused variables, missing comments, style issues
-
 If no issues found, return an empty array: []`;
+
+const SECURITY_PROMPT = `You are CodeGuardian's Security Scanner Agent. Analyze the provided code diff and identify ONLY security vulnerabilities, hardcoded secrets, SQL injection, auth bypass, data exposure, etc.
+You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks.
+${COMMON_JSON_SCHEMA}`;
+
+const PERFORMANCE_PROMPT = `You are CodeGuardian's Performance Bottleneck Agent. Analyze the provided code diff and identify ONLY performance issues, missing error handling, memory leaks, inefficient loops, or missing caching.
+You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks.
+${COMMON_JSON_SCHEMA}`;
+
+const STYLE_PROMPT = `You are CodeGuardian's Code Style & Architecture Agent. Analyze the provided code diff and identify ONLY code smells, naming conventions, missing comments, SOLID principle violations, and general style issues.
+You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks.
+${COMMON_JSON_SCHEMA}`;
 
 /**
  * Builds a single prompt string from all file diff chunks.
@@ -54,7 +60,7 @@ function stripMarkdownFences(text) {
 /**
  * Analyzes code diff chunks using Gemini AI and returns a list of issues.
  * @param {Array<{ filename: string, status: string, additions: number, deletions: number, patch: string }>} fileDiffChunks
- * @returns {Promise<Array<{ title: string, severity: string, filename: string, time_to_fix: number, explanation: string, patch_suggestion: string }>>}
+ * @returns {Promise<Array<{ title: string, severity: string, filename: string, line: number, time_to_fix: number, explanation: string, patch_suggestion: string }>>}
  */
 async function analyzeCodeWithGemini(fileDiffChunks) {
   try {
@@ -64,35 +70,33 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
     }
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const promptText = buildPrompt(fileDiffChunks);
+    const systemPrompts = [SECURITY_PROMPT, PERFORMANCE_PROMPT, STYLE_PROMPT];
 
-    const model = genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      systemInstruction: SYSTEM_PROMPT,
-    });
+    console.log(`GeminiClient: Sending ${fileDiffChunks.length} file(s) to 3 Gemini agents...`);
 
-    const prompt = buildPrompt(fileDiffChunks);
+    const results = await Promise.all(systemPrompts.map(async (sysPrompt, index) => {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: MODEL_NAME,
+          systemInstruction: sysPrompt,
+        });
 
-    console.log(`GeminiClient: Sending ${fileDiffChunks.length} file(s) to Gemini for analysis...`);
+        const result = await model.generateContent(promptText);
+        const rawText = result.response.text();
+        const cleaned = stripMarkdownFences(rawText);
+        
+        return JSON.parse(cleaned);
+      } catch (err) {
+        console.error(`GeminiClient: Agent ${index} failed:`, err.message);
+        return [];
+      }
+    }));
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const rawText = response.text();
+    const allIssues = results.flat();
+    console.log(`GeminiClient: 3 Agents finished. Found ${allIssues.length} total issue(s).`);
+    return allIssues;
 
-    console.log('GeminiClient: Received response from Gemini.');
-
-    // Strip any accidental markdown fences
-    const cleaned = stripMarkdownFences(rawText);
-
-    // Parse JSON
-    try {
-      const issues = JSON.parse(cleaned);
-      console.log(`GeminiClient: Parsed ${issues.length} issue(s).`);
-      return issues;
-    } catch (parseErr) {
-      console.error('GeminiClient: Failed to parse Gemini response as JSON.');
-      console.error('GeminiClient: Raw response was:', rawText);
-      return [];
-    }
   } catch (err) {
     console.error('GeminiClient error in analyzeCodeWithGemini:', err.message);
     throw new Error(`GeminiClient error in analyzeCodeWithGemini: ${err.message}`);

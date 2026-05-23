@@ -24,11 +24,21 @@ export default function IssueCard({ issue }) {
   return (
     <div
       style={{
-        backgroundColor: 'var(--color-bg-card)',
-        border: '1px solid var(--color-bg-border)',
+        backgroundColor: 'var(--color-glass-hover)',
+        borderTop: '1px solid var(--color-glass-border-strong)',
+        borderLeft: '1px solid var(--color-glass-border)',
+        borderRight: '1px solid var(--color-glass-border)',
+        borderBottom: '1px solid var(--color-glass-border)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderRadius: '8px',
         padding: '16px',
         marginBottom: '12px',
+        boxShadow: severityLower === 'critical' 
+          ? 'inset 0 0 24px rgba(239, 68, 68, 0.05)'
+          : severityLower === 'moderate'
+          ? 'inset 0 0 24px rgba(245, 158, 11, 0.05)'
+          : 'inset 0 0 24px rgba(16, 185, 129, 0.05)',
       }}
     >
       {/* Top row */}
@@ -92,17 +102,18 @@ export default function IssueCard({ issue }) {
           </div>
           <pre
             style={{
-              backgroundColor: 'var(--color-bg-primary)',
-              border: '1px solid var(--color-bg-border)',
-              borderRadius: '4px',
-              padding: '12px',
+              backgroundColor: '#0A0A0A',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '6px',
+              padding: '16px',
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
+              fontSize: '0.8rem',
               color: 'var(--color-accent-green)',
               overflowX: 'auto',
               margin: 0,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
+              boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.8)',
             }}
           >
             {issue.patch_suggestion}

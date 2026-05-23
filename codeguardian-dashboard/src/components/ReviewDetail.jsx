@@ -100,14 +100,18 @@ export default function ReviewDetail({ review }) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: 'var(--color-bg-primary)',
+        backgroundColor: 'transparent',
+        overflowY: 'auto',
       }}
     >
       {/* Header section */}
       <div
         style={{
           padding: '16px 24px',
-          borderBottom: '1px solid var(--color-bg-border)',
+          borderBottom: '1px solid var(--color-glass-border)',
+          backgroundColor: 'var(--color-glass-panel)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -139,8 +143,10 @@ export default function ReviewDetail({ review }) {
       <div
         style={{
           padding: '12px 24px',
-          borderBottom: '1px solid var(--color-bg-border)',
-          backgroundColor: 'var(--color-bg-panel)',
+          borderBottom: '1px solid var(--color-glass-border)',
+          backgroundColor: 'var(--color-glass-panel-darker)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           display: 'flex',
           gap: '12px',
           flexWrap: 'wrap',
@@ -167,8 +173,11 @@ export default function ReviewDetail({ review }) {
       <div
         style={{
           flex: 1,
-          padding: '16px 24px',
-          overflowY: 'auto',
+          padding: '24px',
+          background: 'linear-gradient(to bottom, var(--color-bg-card), var(--color-bg-primary))',
+          boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.1)',
+          borderTop: '1px solid var(--color-glass-border)',
+          minHeight: 'min-content',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>

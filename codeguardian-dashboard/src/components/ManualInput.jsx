@@ -38,17 +38,18 @@ export default function ManualInput({ onSubmit, loading }) {
   return (
     <div
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'var(--color-bg-panel)',
-        borderTop: '1px solid var(--color-bg-border)',
-        padding: '12px 24px',
+        backgroundColor: 'var(--color-glass-panel)',
+        border: '1px solid var(--color-glass-border-strong)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderRadius: '12px',
+        padding: '16px',
+        margin: '16px',
         display: 'flex',
-        alignItems: 'center',
-        gap: '24px',
-        zIndex: 50,
+        flexDirection: 'column',
+        gap: '12px',
+        zIndex: 10,
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 0 var(--color-glass-border-strong)',
       }}
     >
       <div
@@ -57,19 +58,18 @@ export default function ManualInput({ onSubmit, loading }) {
           fontSize: '0.75rem',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
-          whiteSpace: 'nowrap',
         }}
       >
         Manual Trigger
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <form
           onSubmit={handleSubmit}
           style={{
             display: 'flex',
-            flex: 1,
-            gap: '12px',
+            flexDirection: 'column',
+            gap: '8px',
           }}
         >
           <input
@@ -80,14 +80,15 @@ export default function ManualInput({ onSubmit, loading }) {
             disabled={loading}
             style={{
               flex: 1,
-              backgroundColor: 'var(--color-bg-primary)',
-              border: `1px solid ${errorMsg ? 'var(--color-accent-red)' : 'var(--color-bg-border)'}`,
-              borderRadius: '4px',
-              padding: '8px 16px',
+              backgroundColor: 'var(--color-glass-input)',
+              border: `1px solid ${errorMsg ? 'var(--color-accent-red)' : 'var(--color-glass-border-strong)'}`,
+              borderRadius: '6px',
+              padding: '10px 16px',
               color: 'var(--color-text-primary)',
               fontSize: '0.875rem',
               fontFamily: 'var(--font-mono)',
               outline: 'none',
+              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
             }}
           />
           
@@ -95,16 +96,18 @@ export default function ManualInput({ onSubmit, loading }) {
             type="submit"
             disabled={loading || !inputValue.trim()}
             style={{
-              backgroundColor: 'var(--color-accent-blue)',
+              backgroundColor: 'rgba(59, 130, 246, 0.8)',
               color: '#ffffff',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '8px 16px',
+              border: '1px solid rgba(147, 197, 253, 0.3)',
+              borderRadius: '6px',
+              padding: '10px 20px',
               fontSize: '0.875rem',
               fontWeight: 600,
               cursor: loading || !inputValue.trim() ? 'not-allowed' : 'pointer',
-              opacity: loading || !inputValue.trim() ? 0.7 : 1,
+              opacity: loading || !inputValue.trim() ? 0.5 : 1,
               whiteSpace: 'nowrap',
+              boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)',
+              transition: 'all 0.2s ease',
             }}
           >
             {loading ? 'Analyzing...' : 'Analyze PR'}

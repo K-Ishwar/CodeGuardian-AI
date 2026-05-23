@@ -184,11 +184,31 @@ async function runAnalysis(prUrl, source) {
     try {
       const commentBody = buildReviewComment(review);
       await githubClient.postReviewComment(owner, repo, pull_number, commentBody);
-      console.log(`${LOG_PREFIX} [Step 9] ✔ Review comment posted successfully`);
+      console.log(`${LOG_PREFIX} [Step 9] ✔ Review summary comment posted successfully`);
     } catch (commentErr) {
-      console.warn(`${LOG_PREFIX} [Step 9] ⚠ Could not post GitHub comment: ${commentErr.message}`);
+      console.warn(`${LOG_PREFIX} [Step 9] ⚠ Could not post GitHub summary comment: ${commentErr.message}`);
       // Non-fatal — do not rethrow
     }
+
+    // ─────────────────────────────────────────────
+    // STEP 9.1 — Post line-level comments to GitHub
+    // ─────────────────────────────────────────────
+    console.log(`${LOG_PREFIX} [Step 9.1] Posting line-level comments to GitHub...`);
+    let lineCommentsPosted = 0;
+    for (const issue of issues) {
+      if (issue.line && issue.filename && metadata.head_sha) {
+        try {
+          const emoji = severityEmoji(issue.severity);
+          const body = `### ${emoji} CodeGuardian: ${issue.title} [${issue.severity}]\n\n${issue.explanation}\n\n**Time to fix:** ~${issue.time_to_fix} mins\n\n**Suggestion:**\n\`\`\`javascript\n${issue.patch_suggestion}\n\`\`\``;
+          
+          await githubClient.postLineComment(owner, repo, pull_number, metadata.head_sha, issue.filename, issue.line, body);
+          lineCommentsPosted++;
+        } catch (lineErr) {
+          console.warn(`${LOG_PREFIX} [Step 9.1] ⚠ Could not post line comment for ${issue.filename}:${issue.line}: ${lineErr.message}`);
+        }
+      }
+    }
+    console.log(`${LOG_PREFIX} [Step 9.1] ✔ Posted ${lineCommentsPosted} line-level comments`);
 
     // ─────────────────────────────────────────────
     // STEP 10 — Return the completed review
