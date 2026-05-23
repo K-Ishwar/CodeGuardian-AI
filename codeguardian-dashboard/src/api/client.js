@@ -7,12 +7,21 @@ import axios from 'axios';
 
 const client = axios.create({
   baseURL: 'http://localhost:3001',
-  timeout: 10_000,
+  timeout: 15_000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// TODO: Add request/response interceptors here (auth headers, error toasts, etc.)
+export async function getReviews() {
+  const response = await client.get('/reviews');
+  return response.data;
+}
+
+export async function analyzeManual(prUrl) {
+  const response = await client.post('/analyze', { prUrl });
+  return response.data;
+}
 
 export default client;
+

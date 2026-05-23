@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import client from '../api/client';
+import { useState, useEffect, useCallback } from 'react';
+import { getReviews } from '../api/client';
 
 // ---------------------------------------------------------------------------
 // useReviews — polling hook
@@ -9,14 +9,29 @@ import client from '../api/client';
 export function useReviews() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    // TODO: implement polling logic
-    // - fetch /reviews on mount
-    // - set up a setInterval for every 3 000 ms
-    // - clear the interval on unmount
+  const fetchReviews = useCallback(async () => {
+    try {
+      const data = await getReviews();
+      setReviews(data);
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { reviews, loading, error };
+  useEffect(() => {
+    // Fetch immediately on mount
+    fetchReviews();
+
+    // Set up polling every 3000ms
+    const intervalId = setInterval(fetchReviews, 3000);
+
+    // Clean up on unmount
+    return () => clearInterval(intervalId);
+  }, [fetchReviews]);
+
+  return { reviews, loading, refetch: fetchReviews };
 }
+
