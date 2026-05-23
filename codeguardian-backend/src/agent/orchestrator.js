@@ -3,21 +3,9 @@ const { v4: uuidv4 } = require('uuid');
 const githubClient = require('./githubClient');
 const { parseDiff } = require('./diffParser');
 const { analyzeCodeWithGemini } = require('./geminiClient');
-const { addReview, getReviewById, reviewStore } = require('../storage/store');
+const { addReview, getReviewById, updateReview } = require('../storage/store');
 
 const LOG_PREFIX = '[CodeGuardian]';
-
-/**
- * Updates a review record in-place by its id.
- * @param {string} id
- * @param {object} updates
- */
-function updateReview(id, updates) {
-  const index = reviewStore.findIndex((r) => r.id === id);
-  if (index !== -1) {
-    Object.assign(reviewStore[index], updates);
-  }
-}
 
 /**
  * Returns the severity emoji for a given severity level.
@@ -102,7 +90,7 @@ async function runAnalysis(prUrl, source) {
     issues: [],
     source,
   };
-  addReview(review);
+  await addReview(review);
   console.log(`${LOG_PREFIX} [Step 2] ✔ Review created with id=${review.id}`);
 
   try {
@@ -111,7 +99,7 @@ async function runAnalysis(prUrl, source) {
     // ─────────────────────────────────────────────
     console.log(`${LOG_PREFIX} [Step 3] Fetching PR metadata...`);
     const metadata = await githubClient.fetchPRMetadata(owner, repo, pull_number);
-    updateReview(review.id, {
+    await updateReview(review.id, {
       pr_title: metadata.title,
       author: metadata.author,
       pr_url: metadata.pr_url,
@@ -129,7 +117,7 @@ async function runAnalysis(prUrl, source) {
 
     if (!rawDiff || rawDiff.trim() === '') {
       console.warn(`${LOG_PREFIX} [Step 4] ⚠ Diff is empty. Marking as Failed.`);
-      updateReview(review.id, { status: 'Failed' });
+      await updateReview(review.id, { status: 'Failed' });
       review.status = 'Failed';
       return review;
     }
@@ -144,7 +132,7 @@ async function runAnalysis(prUrl, source) {
 
     if (fileDiffChunks.length === 0) {
       console.log(`${LOG_PREFIX} [Step 5] No actionable file chunks. Marking as Analyzed with 0 issues.`);
-      updateReview(review.id, { status: 'Analyzed' });
+      await updateReview(review.id, { status: 'Analyzed' });
       review.status = 'Analyzed';
       return review;
     }
@@ -173,7 +161,7 @@ async function runAnalysis(prUrl, source) {
     // ─────────────────────────────────────────────
     console.log(`${LOG_PREFIX} [Step 8] Updating review record...`);
     const finalUpdates = { status: 'Analyzed', issues, metrics, latency_seconds };
-    updateReview(review.id, finalUpdates);
+    await updateReview(review.id, finalUpdates);
     Object.assign(review, finalUpdates);
     console.log(`${LOG_PREFIX} [Step 8] ✔ Review marked as Analyzed`);
 
@@ -221,7 +209,7 @@ async function runAnalysis(prUrl, source) {
     // ERROR HANDLER — mark review as Failed
     // ─────────────────────────────────────────────
     console.error(`${LOG_PREFIX} ❌ Analysis failed: ${err.message}`);
-    updateReview(review.id, { status: 'Failed' });
+    await updateReview(review.id, { status: 'Failed' });
     review.status = 'Failed';
     return review;
   }

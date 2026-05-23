@@ -8,13 +8,30 @@ import { getReviews } from '../api/client';
 
 export function useReviews() {
   const [reviews, setReviews] = useState([]);
+  const [globalMetrics, setGlobalMetrics] = useState({ totalReviews: 0, totalIssues: 0, debtRecovered: 0, avgLatency: 0 });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [repoFilter, setRepoFilter] = useState('');
+  const [severityFilter, setSeverityFilter] = useState('');
+  
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
 
   const fetchReviews = useCallback(async () => {
     try {
-      const data = await getReviews();
-      setReviews(data);
+      const params = { page, limit: 10 };
+      if (repoFilter) params.repo = repoFilter;
+      if (severityFilter) params.severity = severityFilter;
+      
+      const result = await getReviews(params);
+      
+      setReviews(result.data || []);
+      if (result.globalMetrics) {
+        setGlobalMetrics(result.globalMetrics);
+      }
+      if (result.totalPages) {
+        setTotalPages(result.totalPages);
+      }
       setConnected(true);
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
@@ -22,20 +39,28 @@ export function useReviews() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, repoFilter, severityFilter]);
 
   useEffect(() => {
-    // Fetch immediately on mount
     fetchReviews();
-
-    // Set up polling every 3000ms
     const intervalId = setInterval(fetchReviews, 3000);
-
-    // Clean up on unmount
     return () => clearInterval(intervalId);
   }, [fetchReviews]);
 
-  return { reviews, loading, refetch: fetchReviews, connected };
+  return {
+    reviews,
+    globalMetrics,
+    loading,
+    refetch: fetchReviews,
+    connected,
+    page,
+    setPage,
+    totalPages,
+    repoFilter,
+    setRepoFilter,
+    severityFilter,
+    setSeverityFilter
+  };
 }
 
 

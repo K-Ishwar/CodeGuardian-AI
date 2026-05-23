@@ -1,6 +1,6 @@
 // All GitHub API calls
 const axios = require('axios');
-const { GITHUB_TOKEN } = require('../config');
+const { GITHUB_TOKEN, DRY_RUN } = require('../config');
 
 const BASE_URL = 'https://api.github.com';
 
@@ -101,6 +101,11 @@ async function fetchPRDiff(owner, repo, pull_number) {
  */
 async function postReviewComment(owner, repo, pull_number, reviewBody) {
   try {
+    if (DRY_RUN) {
+      console.log(`[DRY RUN] Would have posted review comment to ${owner}/${repo}#${pull_number}`);
+      return { id: 'dry-run-comment-id' };
+    }
+
     if (!GITHUB_TOKEN) {
       console.warn(
         'GitHubClient warning in postReviewComment: GITHUB_TOKEN is not set. Skipping comment post.'
@@ -134,6 +139,11 @@ async function postReviewComment(owner, repo, pull_number, reviewBody) {
  */
 async function postLineComment(owner, repo, pull_number, commit_id, path, line, body) {
   try {
+    if (DRY_RUN) {
+      console.log(`[DRY RUN] Would have posted line comment to ${owner}/${repo}#${pull_number} on ${path}:${line}`);
+      return { id: 'dry-run-line-comment-id' };
+    }
+
     if (!GITHUB_TOKEN) {
       console.warn('GitHubClient warning: GITHUB_TOKEN not set. Skipping line comment.');
       return null;

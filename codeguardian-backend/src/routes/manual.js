@@ -41,27 +41,41 @@ router.post('/analyze', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// GET /reviews — list all reviews, newest first
+// GET /reviews — list all reviews with pagination/filtering
 // ─────────────────────────────────────────────
-router.get('/reviews', (req, res) => {
-  const reviews = getAllReviews()
-    .slice()
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  return res.status(200).json(reviews);
+router.get('/reviews', async (req, res) => {
+  try {
+    // For now, pass options from query. Later we will pass req.user.repos
+    const options = {
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 50,
+      repo: req.query.repo || '',
+      severity: req.query.severity || '',
+      userRepos: req.user.repos,
+    };
+    const reviews = await getAllReviews(options);
+    return res.status(200).json(reviews);
+  } catch (err) {
+    console.error(`[Manual] ❌ /reviews error: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // ─────────────────────────────────────────────
 // GET /reviews/:id — get a single review by id
 // ─────────────────────────────────────────────
-router.get('/reviews/:id', (req, res) => {
-  const review = getReviewById(req.params.id);
+router.get('/reviews/:id', async (req, res) => {
+  try {
+    const review = await getReviewById(req.params.id);
 
-  if (!review) {
-    return res.status(404).json({ error: `Review not found: ${req.params.id}` });
+    if (!review) {
+      return res.status(404).json({ error: `Review not found: ${req.params.id}` });
+    }
+
+    return res.status(200).json(review);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  return res.status(200).json(review);
 });
 
 module.exports = router;

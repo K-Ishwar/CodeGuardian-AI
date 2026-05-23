@@ -20,7 +20,18 @@ function getRelativeTime(dateString) {
   return `${diffInDays}d ago`;
 }
 
-export default function ReviewList({ reviews = [], selectedId, onSelect }) {
+export default function ReviewList({ 
+  reviews = [], 
+  selectedId, 
+  onSelect,
+  page,
+  setPage,
+  totalPages,
+  repoFilter,
+  setRepoFilter,
+  severityFilter,
+  setSeverityFilter 
+}) {
   return (
     <div
       style={{
@@ -49,7 +60,46 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
           zIndex: 10,
         }}
       >
-        PR Queue
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span>PR Queue</span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input 
+            type="text" 
+            placeholder="Filter Repo..." 
+            value={repoFilter || ''} 
+            onChange={(e) => { setRepoFilter(e.target.value); setPage(1); }}
+            style={{
+              flex: 1,
+              backgroundColor: 'var(--color-glass-input)',
+              border: '1px solid var(--color-glass-border)',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              color: 'var(--color-text-primary)',
+              fontSize: '0.75rem',
+              outline: 'none',
+              fontFamily: 'var(--font-mono)'
+            }}
+          />
+          <select 
+            value={severityFilter || ''} 
+            onChange={(e) => { setSeverityFilter(e.target.value); setPage(1); }}
+            style={{
+              backgroundColor: 'var(--color-glass-input)',
+              border: '1px solid var(--color-glass-border)',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              color: 'var(--color-text-primary)',
+              fontSize: '0.75rem',
+              outline: 'none',
+            }}
+          >
+            <option value="">All Severities</option>
+            <option value="Critical">Critical</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
       </div>
 
       {/* Empty State */}
@@ -194,6 +244,53 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
           </div>
         );
       })}
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{
+          padding: '12px 16px',
+          borderTop: '1px solid var(--color-glass-border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--color-glass-panel)',
+          position: 'sticky',
+          bottom: 0,
+        }}>
+          <button 
+            disabled={page <= 1} 
+            onClick={() => setPage(p => p - 1)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--color-glass-border-strong)',
+              color: 'var(--color-text-primary)',
+              padding: '4px 12px',
+              borderRadius: '4px',
+              cursor: page <= 1 ? 'not-allowed' : 'pointer',
+              opacity: page <= 1 ? 0.5 : 1
+            }}
+          >
+            Prev
+          </button>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+            Page {page} of {totalPages}
+          </span>
+          <button 
+            disabled={page >= totalPages} 
+            onClick={() => setPage(p => p + 1)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--color-glass-border-strong)',
+              color: 'var(--color-text-primary)',
+              padding: '4px 12px',
+              borderRadius: '4px',
+              cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+              opacity: page >= totalPages ? 0.5 : 1
+            }}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

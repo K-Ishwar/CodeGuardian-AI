@@ -3,6 +3,7 @@ const cors = require('cors');
 const config = require('./config');
 const webhookRoutes = require('./routes/webhook');
 const manualRoutes = require('./routes/manual');
+const { router: authRoutes, authenticate } = require('./routes/auth');
 
 const app = express();
 
@@ -28,8 +29,11 @@ app.use((req, res, next) => {
 // GitHub webhook — handles its own body parsing (raw bytes for HMAC)
 app.use('/webhook', webhookRoutes);
 
-// Manual analysis + review listing
-app.use('/', manualRoutes);
+// Auth routes (public)
+app.use('/auth', authRoutes);
+
+// Manual analysis + review listing (protected)
+app.use('/', authenticate, manualRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

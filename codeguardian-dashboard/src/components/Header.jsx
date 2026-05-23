@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, LogOut } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Header — top metric bar
@@ -18,23 +18,12 @@ function Clock() {
   return <span>{timeString}</span>;
 }
 
-export default function Header({ reviews = [], connected = true, isLightMode, setIsLightMode }) {
-  // Compute metrics
-  const totalReviews = reviews.length;
-  
-  const totalIssues = reviews.reduce((sum, review) => {
-    return sum + (review.metrics?.total_issues || 0);
-  }, 0);
-  
-  const totalDebtRecovered = reviews.reduce((sum, review) => {
-    return sum + (review.metrics?.financial_saved || 0);
-  }, 0);
-  
-  const totalLatency = reviews.reduce((sum, review) => {
-    return sum + (review.latency_seconds || 0);
-  }, 0);
-  
-  const avgLatency = totalReviews > 0 ? (totalLatency / totalReviews).toFixed(1) + 's' : '—';
+export default function Header({ reviews = [], globalMetrics = {}, connected = true, isLightMode, setIsLightMode, onLogout }) {
+  // Use globalMetrics computed by backend over the full dataset
+  const totalReviews = globalMetrics.totalReviews || 0;
+  const totalIssues = globalMetrics.totalIssues || 0;
+  const totalDebtRecovered = globalMetrics.debtRecovered || 0;
+  const avgLatency = globalMetrics.avgLatency ? `${globalMetrics.avgLatency}s` : '0.0s';
 
   return (
     <header
@@ -121,6 +110,34 @@ export default function Header({ reviews = [], connected = true, isLightMode, se
             title={isLightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
           >
             {isLightMode ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+          
+          <button
+            onClick={onLogout}
+            style={{
+              background: 'var(--color-glass-border)',
+              border: '1px solid var(--color-glass-border-strong)',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--color-accent-red)',
+              transition: 'all 0.2s',
+            }}
+            title="Logout"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-accent-red)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-glass-border)';
+              e.currentTarget.style.color = 'var(--color-accent-red)';
+            }}
+          >
+            <LogOut size={16} />
           </button>
 
           <div
