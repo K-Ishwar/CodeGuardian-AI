@@ -9,13 +9,16 @@ import { getReviews } from '../api/client';
 export function useReviews() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(true);
 
   const fetchReviews = useCallback(async () => {
     try {
       const data = await getReviews();
       setReviews(data);
+      setConnected(true);
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
+      setConnected(false);
     } finally {
       setLoading(false);
     }
@@ -32,6 +35,7 @@ export function useReviews() {
     return () => clearInterval(intervalId);
   }, [fetchReviews]);
 
-  return { reviews, loading, refetch: fetchReviews };
+  return { reviews, loading, refetch: fetchReviews, connected };
 }
+
 

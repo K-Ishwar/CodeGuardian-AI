@@ -69,6 +69,20 @@ export default function ReviewDetail({ review }) {
   const hoursSaved = review.metrics?.hours_saved || 0;
   const financialSaved = review.metrics?.financial_saved || 0;
   
+  // Compute severities
+  let crit = 0, mod = 0, low = 0;
+  issues.forEach(i => {
+    const sev = (i.severity || '').toLowerCase();
+    if (sev === 'critical') crit++;
+    else if (sev === 'moderate') mod++;
+    else if (sev === 'low') low++;
+  });
+  
+  const total = crit + mod + low;
+  const critPct = total > 0 ? (crit / total) * 100 : 0;
+  const modPct = total > 0 ? (mod / total) * 100 : 0;
+  const lowPct = total > 0 ? (low / total) * 100 : 0;
+  
   // Determine color for issues count
   let issuesColor = 'var(--color-accent-green)';
   if (totalIssues >= 4) {
@@ -157,17 +171,34 @@ export default function ReviewDetail({ review }) {
           overflowY: 'auto',
         }}
       >
-        <div
-          style={{
-            color: 'var(--color-text-secondary)',
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '12px',
-          }}
-        >
-          Findings
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div
+            style={{
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.75rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Findings
+          </div>
         </div>
+
+        {/* Severity Breakdown Bar */}
+        {!isProcessing && total > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', height: '8px', width: '100%', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+              {crit > 0 && <div style={{ width: `${critPct}%`, backgroundColor: 'var(--color-accent-red)' }} title={`${crit} Critical`} />}
+              {mod > 0 && <div style={{ width: `${modPct}%`, backgroundColor: 'var(--color-accent-amber)' }} title={`${mod} Moderate`} />}
+              {low > 0 && <div style={{ width: `${lowPct}%`, backgroundColor: 'var(--color-accent-green)' }} title={`${low} Low`} />}
+            </div>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+              {crit > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ color: 'var(--color-accent-red)' }}>🔴</span> {crit} Critical</span>}
+              {mod > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ color: 'var(--color-accent-amber)' }}>🟡</span> {mod} Moderate</span>}
+              {low > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ color: 'var(--color-accent-green)' }}>🟢</span> {low} Low</span>}
+            </div>
+          </div>
+        )}
 
         {isProcessing && (
           <div
@@ -180,7 +211,6 @@ export default function ReviewDetail({ review }) {
               animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             }}
           >
-            {/* simple inline style for a pulse animation effect doesn't strictly work without keyframes defined globally, but setting opacity creates a decent placeholder */}
             <span style={{ fontSize: '1.2em' }}>↻</span> Analyzing with Gemini AI...
           </div>
         )}
@@ -208,4 +238,5 @@ export default function ReviewDetail({ review }) {
     </div>
   );
 }
+
 

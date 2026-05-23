@@ -19,7 +19,7 @@ import { analyzeManual } from './api/client';
 // ---------------------------------------------------------------------------
 
 export default function App() {
-  const { reviews, loading, refetch } = useReviews();
+  const { reviews, loading, refetch, connected } = useReviews();
   const [selectedId, setSelectedId] = useState(null);
   const [manualLoading, setManualLoading] = useState(false);
 
@@ -61,7 +61,7 @@ export default function App() {
       }}
     >
       {/* ── Top metric bar ── */}
-      <Header reviews={reviews} loading={loading} />
+      <Header reviews={reviews} connected={connected} />
 
       {/* ── Two-column main area ── */}
       <main

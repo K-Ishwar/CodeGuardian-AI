@@ -71,6 +71,16 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
       {/* Review Items */}
       {reviews.map((review) => {
         const isSelected = selectedId === review.id;
+        const issues = review.issues || [];
+        
+        // Count severities
+        let crit = 0, mod = 0, low = 0;
+        issues.forEach(i => {
+          const sev = (i.severity || '').toLowerCase();
+          if (sev === 'critical') crit++;
+          else if (sev === 'moderate') mod++;
+          else if (sev === 'low') low++;
+        });
         
         return (
           <div
@@ -110,19 +120,38 @@ export default function ReviewList({ reviews = [], selectedId, onSelect }) {
               <StatusBadge status={review.status} />
             </div>
 
-            {/* Second line: PR Title */}
+            {/* Second line: PR Title & Severity Summary */}
             <div
               style={{
-                color: 'var(--color-text-secondary)',
-                fontSize: '0.75rem',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '6px',
               }}
-              title={review.pr_title}
             >
-              {review.pr_title || 'Untitled PR'}
+              <div
+                style={{
+                  color: 'var(--color-text-secondary)',
+                  fontSize: '0.75rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  flex: 1,
+                  marginRight: '8px',
+                }}
+                title={review.pr_title}
+              >
+                {review.pr_title || 'Untitled PR'}
+              </div>
+              
+              {/* Severity Summary */}
+              {issues.length > 0 && (
+                <div style={{ fontSize: '0.65rem', display: 'flex', gap: '4px', whiteSpace: 'nowrap' }}>
+                  {crit > 0 && <span style={{ color: 'var(--color-text-secondary)' }}>🔴{crit}</span>}
+                  {mod > 0 && <span style={{ color: 'var(--color-text-secondary)' }}>🟡{mod}</span>}
+                  {low > 0 && <span style={{ color: 'var(--color-text-secondary)' }}>🟢{low}</span>}
+                </div>
+              )}
             </div>
 
             {/* Third line: Author & Timestamp */}

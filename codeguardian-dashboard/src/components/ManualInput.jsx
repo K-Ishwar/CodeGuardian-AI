@@ -7,13 +7,32 @@ import { useState } from 'react';
 
 export default function ManualInput({ onSubmit, loading }) {
   const [inputValue, setInputValue] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const validateUrl = (url) => {
+    // Basic regex for https://github.com/owner/repo/pull/123
+    const regex = /^https?:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+\/?$/i;
+    return regex.test(url);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    const url = inputValue.trim();
+    if (!url) return;
     
-    await onSubmit(inputValue.trim());
+    if (!validateUrl(url)) {
+      setErrorMsg('Invalid GitHub PR URL format');
+      return;
+    }
+    
+    setErrorMsg('');
+    await onSubmit(url);
     setInputValue(''); // clear input after submit
+  };
+
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
+    if (errorMsg) setErrorMsg(''); // Clear error when user types
   };
 
   return (
@@ -44,53 +63,61 @@ export default function ManualInput({ onSubmit, loading }) {
         Manual Trigger
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: 'flex',
-          flex: 1,
-          gap: '12px',
-        }}
-      >
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="https://github.com/owner/repo/pull/123"
-          disabled={loading}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <form
+          onSubmit={handleSubmit}
           style={{
+            display: 'flex',
             flex: 1,
-            backgroundColor: 'var(--color-bg-primary)',
-            border: '1px solid var(--color-bg-border)',
-            borderRadius: '4px',
-            padding: '8px 16px',
-            color: 'var(--color-text-primary)',
-            fontSize: '0.875rem',
-            fontFamily: 'var(--font-mono)',
-            outline: 'none',
-          }}
-        />
-        
-        <button
-          type="submit"
-          disabled={loading || !inputValue.trim()}
-          style={{
-            backgroundColor: 'var(--color-accent-blue)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '8px 16px',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: loading || !inputValue.trim() ? 'not-allowed' : 'pointer',
-            opacity: loading || !inputValue.trim() ? 0.7 : 1,
-            whiteSpace: 'nowrap',
+            gap: '12px',
           }}
         >
-          {loading ? 'Analyzing...' : 'Analyze PR'}
-        </button>
-      </form>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleChange}
+            placeholder="https://github.com/owner/repo/pull/123"
+            disabled={loading}
+            style={{
+              flex: 1,
+              backgroundColor: 'var(--color-bg-primary)',
+              border: `1px solid ${errorMsg ? 'var(--color-accent-red)' : 'var(--color-bg-border)'}`,
+              borderRadius: '4px',
+              padding: '8px 16px',
+              color: 'var(--color-text-primary)',
+              fontSize: '0.875rem',
+              fontFamily: 'var(--font-mono)',
+              outline: 'none',
+            }}
+          />
+          
+          <button
+            type="submit"
+            disabled={loading || !inputValue.trim()}
+            style={{
+              backgroundColor: 'var(--color-accent-blue)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '8px 16px',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: loading || !inputValue.trim() ? 'not-allowed' : 'pointer',
+              opacity: loading || !inputValue.trim() ? 0.7 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {loading ? 'Analyzing...' : 'Analyze PR'}
+          </button>
+        </form>
+        {errorMsg && (
+          <div style={{ color: 'var(--color-accent-red)', fontSize: '0.75rem', marginLeft: '2px' }}>
+            {errorMsg}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
 
