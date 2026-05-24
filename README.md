@@ -30,4 +30,3 @@ CodeGuardian AI is an advanced, autonomous agent that acts as a Principal Engine
 5. *(Note: The "Apply Fix" button requires the backend's GitHub token to have write access to the specific repository).*
 
 ---
-*Built with ❤️ using Gemini AI.*
