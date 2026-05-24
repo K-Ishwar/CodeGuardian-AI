@@ -75,8 +75,11 @@ router.post(
       const prUrl = pull_request.html_url;
       console.log(`[Webhook] ✔ Received PR event action="${action}" url=${prUrl}`);
 
+      const { v4: uuidv4 } = require('uuid');
+      const reviewId = uuidv4();
+
       // Fire-and-forget — do NOT await so GitHub doesn't timeout
-      runAnalysis(prUrl, 'webhook').catch((err) =>
+      runAnalysis(prUrl, 'webhook', reviewId).catch((err) =>
         console.error(`[Webhook] ❌ runAnalysis error: ${err.message}`)
       );
 
