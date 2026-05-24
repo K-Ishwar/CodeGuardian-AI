@@ -94,7 +94,15 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
         return JSON.parse(cleaned);
       } catch (err) {
         console.error(`GeminiClient: Agent ${index} failed:`, err.message);
-        return [];
+        return [{
+          title: `AI Agent Error (Agent ${index})`,
+          severity: 'Critical',
+          filename: 'System',
+          line: 1,
+          time_to_fix: 0,
+          explanation: `The Gemini API failed to respond: ${err.message}. Raw text: ${err.rawText || 'None'}`,
+          patch_suggestion: "// API Failure"
+        }];
       }
     }));
 
