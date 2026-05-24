@@ -87,12 +87,12 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
     } catch (err) {
       console.error(`GeminiClient: Master Agent failed:`, err.message);
       return [{
-        title: \`AI Rate Limit Exceeded\`,
+        title: `AI Rate Limit Exceeded`,
         severity: 'Critical',
         filename: 'System',
         line: 1,
         time_to_fix: 0,
-        explanation: \`The Gemini API is being rate-limited: \${err.message}.\`,
+        explanation: `The Gemini API is being rate-limited: ${err.message}.`,
         patch_suggestion: "// Please wait 60 seconds and try again."
       }];
     }
