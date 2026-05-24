@@ -17,15 +17,7 @@ Each issue object MUST have exactly these fields:
 }
 If no issues found, return an empty array: []`;
 
-const SECURITY_PROMPT = `You are CodeGuardian's Security Scanner Agent. Analyze the provided code diff and identify ONLY security vulnerabilities, hardcoded secrets, SQL injection, auth bypass, data exposure, etc.
-You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks.
-${COMMON_JSON_SCHEMA}`;
-
-const PERFORMANCE_PROMPT = `You are CodeGuardian's Performance Bottleneck Agent. Analyze the provided code diff and identify ONLY performance issues, missing error handling, memory leaks, inefficient loops, or missing caching.
-You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks.
-${COMMON_JSON_SCHEMA}`;
-
-const STYLE_PROMPT = `You are CodeGuardian's Code Quality & Bug Agent. Analyze the provided code diff and identify ANY logical bugs, syntax errors, typos, code smells, naming conventions, missing comments, SOLID principle violations, and general anti-patterns.
+const MASTER_PROMPT = `You are CodeGuardian's Master Review Agent. Analyze the provided code diff and identify ANY security vulnerabilities, performance bottlenecks, logical bugs, syntax errors, and code style issues.
 You MUST respond with ONLY a valid JSON array. No explanation text, no markdown, no backticks.
 ${COMMON_JSON_SCHEMA}`;
 
@@ -73,42 +65,37 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const promptText = buildPrompt(fileDiffChunks);
-    const systemPrompts = [SECURITY_PROMPT, PERFORMANCE_PROMPT, STYLE_PROMPT];
     
     // Fetch custom rules
     const rules = await getRules();
 
-    console.log(`GeminiClient: Sending ${fileDiffChunks.length} file(s) to 3 Gemini agents...`);
+    console.log(`GeminiClient: Sending ${fileDiffChunks.length} file(s) to Master Gemini Agent...`);
 
-    const results = await Promise.all(systemPrompts.map(async (sysPrompt, index) => {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: MODEL_NAME,
-          systemInstruction: sysPrompt + (rules ? `\n\nUSER CUSTOM RULES (MUST FOLLOW):\n${rules}` : ''),
-        });
+    try {
+      const model = genAI.getGenerativeModel({
+        model: MODEL_NAME,
+        systemInstruction: MASTER_PROMPT + (rules ? `\n\nUSER CUSTOM RULES (MUST FOLLOW):\n${rules}` : ''),
+      });
 
-        const result = await model.generateContent(promptText);
-        const rawText = result.response.text();
-        const cleaned = stripMarkdownFences(rawText);
-        
-        return JSON.parse(cleaned);
-      } catch (err) {
-        console.error(`GeminiClient: Agent ${index} failed:`, err.message);
-        return [{
-          title: `AI Agent Error (Agent ${index})`,
-          severity: 'Critical',
-          filename: 'System',
-          line: 1,
-          time_to_fix: 0,
-          explanation: `The Gemini API failed to respond: ${err.message}. Raw text: ${err.rawText || 'None'}`,
-          patch_suggestion: "// API Failure"
-        }];
-      }
-    }));
-
-    const allIssues = results.flat();
-    console.log(`GeminiClient: 3 Agents finished. Found ${allIssues.length} total issue(s).`);
-    return allIssues;
+      const result = await model.generateContent(promptText);
+      const rawText = result.response.text();
+      const cleaned = stripMarkdownFences(rawText);
+      
+      const parsedIssues = JSON.parse(cleaned);
+      console.log(`GeminiClient: Master Agent finished. Found ${parsedIssues.length} total issue(s).`);
+      return parsedIssues;
+    } catch (err) {
+      console.error(`GeminiClient: Master Agent failed:`, err.message);
+      return [{
+        title: \`AI Rate Limit Exceeded\`,
+        severity: 'Critical',
+        filename: 'System',
+        line: 1,
+        time_to_fix: 0,
+        explanation: \`The Gemini API is being rate-limited: \${err.message}.\`,
+        patch_suggestion: "// Please wait 60 seconds and try again."
+      }];
+    }
 
   } catch (err) {
     console.error('GeminiClient error in analyzeCodeWithGemini:', err.message);
