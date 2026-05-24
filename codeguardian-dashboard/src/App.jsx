@@ -55,7 +55,8 @@ export default function App() {
     if (code && !authToken && !isFetchingAuth.current) {
       isFetchingAuth.current = true;
       setAuthLoading(true);
-      fetch('http://localhost:3001/auth/github', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      fetch(`${API_URL}/auth/github`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
