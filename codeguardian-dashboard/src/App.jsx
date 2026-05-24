@@ -141,11 +141,15 @@ export default function App() {
     );
   }
 
-  const handleGuestLogin = async () => {
+  const handleGuestLogin = async (password) => {
     setAuthLoading(true);
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const res = await fetch(`${API_URL}/auth/guest`, { method: 'POST' });
+      const res = await fetch(`${API_URL}/auth/guest`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
       const data = await res.json();
       if (data.token) {
         localStorage.setItem('auth_token', data.token);

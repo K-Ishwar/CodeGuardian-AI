@@ -66,7 +66,10 @@ export default function LoginView({ onGuestLogin }) {
           </button>
 
           <button
-            onClick={onGuestLogin}
+            onClick={() => {
+              const pwd = prompt("Enter Hackathon Judge Password:");
+              if (pwd) onGuestLogin(pwd);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',

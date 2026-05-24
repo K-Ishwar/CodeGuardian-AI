@@ -86,6 +86,13 @@ router.post('/github', async (req, res) => {
 // Guest Login (For Hackathon Judges)
 // ─────────────────────────────────────────────
 router.post('/guest', (req, res) => {
+  const { password } = req.body;
+  const expectedPassword = process.env.GUEST_PASSWORD || 'judges123';
+
+  if (password !== expectedPassword) {
+    return res.status(401).json({ error: 'Invalid guest password' });
+  }
+
   try {
     const token = jwt.sign(
       { username: 'HackathonJudge', avatar_url: 'https://github.com/ghost.png' },
