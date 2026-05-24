@@ -18,7 +18,11 @@ async function initDB() {
           timestamp TEXT,
           status TEXT,
           data TEXT
-        )
+        );
+        CREATE TABLE IF NOT EXISTS rulesets (
+          id TEXT PRIMARY KEY,
+          rules TEXT
+        );
       `);
       return db;
     });
@@ -73,6 +77,9 @@ async function getAllReviews(options = {}) {
     query += ' AND repository = ?';
     params.push(repo);
   } else if (userRepos !== null) {
+    if (userRepos.length === 0) {
+      return { data: [], total: 0, page, limit, totalPages: 0, globalMetrics: { totalReviews: 0, totalIssues: 0, debtRecovered: 0, avgLatency: 0 } };
+    }
     // AuthZ: only show PRs from accessible repos
     const placeholders = userRepos.map(() => '?').join(',');
     query += ` AND repository IN (${placeholders})`;
@@ -125,6 +132,96 @@ async function getReviewById(id) {
   return row ? JSON.parse(row.data) : null;
 }
 
+// ─────────────────────────────────────────────
+// Ruleset Storage
+// ─────────────────────────────────────────────
+async function getRules() {
+  const db = await initDB();
+  const row = await db.get('SELECT rules FROM rulesets WHERE id = ?', ['global']);
+  return row ? row.rules : '';
+}
+
+async function saveRules(rulesText) {
+  const db = await initDB();
+  await db.run(
+    'INSERT INTO rulesets (id, rules) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET rules = excluded.rules',
+    ['global', rulesText]
+  );
+  return rulesText;
+}
+
+// ─────────────────────────────────────────────
+// Analytics / Gamification
+// ─────────────────────────────────────────────
+async function getLeaderboard(userRepos = null) {
+  const db = await initDB();
+  
+  let query = 'SELECT data FROM reviews WHERE 1=1';
+  const params = [];
+
+  if (userRepos !== null) {
+    if (userRepos.length === 0) return [];
+    const placeholders = userRepos.map(() => '?').join(',');
+    query += ` AND repository IN (${placeholders})`;
+    params.push(...userRepos);
+  }
+
+  const rows = await db.all(query, params);
+  const reviews = rows.map((row) => JSON.parse(row.data));
+
+  const stats = {};
+
+  for (const review of reviews) {
+    if (!review.author) continue;
+    const author = review.author;
+
+    if (!stats[author]) {
+      stats[author] = {
+        author,
+        totalPrs: 0,
+        cleanPrs: 0,
+        criticalBugsPrevented: 0,
+        score: 0
+      };
+    }
+
+    stats[author].totalPrs += 1;
+
+    let hasIssues = false;
+    if (review.issues && review.issues.length > 0) {
+      hasIssues = true;
+      for (const issue of review.issues) {
+        const severity = (issue.severity || '').toLowerCase();
+        if (severity === 'critical') {
+          stats[author].criticalBugsPrevented += 1;
+          stats[author].score -= 20;
+        } else if (severity === 'moderate') {
+          stats[author].score -= 10;
+        } else if (severity === 'low') {
+          stats[author].score -= 5;
+        }
+      }
+    }
+
+    if (!hasIssues && review.status === 'Analyzed') {
+      stats[author].cleanPrs += 1;
+      stats[author].score += 50;
+    }
+  }
+
+  const leaderboard = Object.values(stats).map(s => {
+    return {
+      ...s,
+      cleanPrRate: s.totalPrs > 0 ? Math.round((s.cleanPrs / s.totalPrs) * 100) : 0
+    };
+  });
+
+  // Sort by score descending
+  leaderboard.sort((a, b) => b.score - a.score);
+
+  return leaderboard;
+}
+
 // Ensure database is initialized
 initDB().catch((err) => console.error('[SQLite] Initialization error:', err));
 
@@ -133,4 +230,7 @@ module.exports = {
   updateReview,
   getAllReviews,
   getReviewById,
+  getRules,
+  saveRules,
+  getLeaderboard,
 };

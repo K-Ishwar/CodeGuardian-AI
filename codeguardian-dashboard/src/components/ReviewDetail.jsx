@@ -239,7 +239,7 @@ export default function ReviewDetail({ review }) {
         {!isProcessing && issues.length > 0 && (
           <div>
             {issues.map((issue, idx) => (
-              <IssueCard key={idx} issue={issue} />
+              <IssueCard key={idx} issue={issue} reviewId={review.id} />
             ))}
           </div>
         )}

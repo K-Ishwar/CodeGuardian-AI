@@ -6,19 +6,12 @@ import { Sun, Moon, LogOut } from 'lucide-react';
 // Displays global stats: total reviews, issues found, avg score, etc.
 // ---------------------------------------------------------------------------
 
-function Clock() {
-  const [time, setTime] = useState(new Date());
+// ---------------------------------------------------------------------------
+// Header — top metric bar
+// Displays global stats: total reviews, issues found, avg score, etc.
+// ---------------------------------------------------------------------------
 
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const timeString = time.toLocaleTimeString('en-US', { hour12: false });
-  return <span>{timeString}</span>;
-}
-
-export default function Header({ reviews = [], globalMetrics = {}, connected = true, isLightMode, setIsLightMode, onLogout }) {
+export default function Header({ reviews = [], globalMetrics = {}, connected = true, isLightMode, setIsLightMode, onLogout, onToggleSettings, isSettingsView, onToggleLeaderboard, isLeaderboardView }) {
   // Use globalMetrics computed by backend over the full dataset
   const totalReviews = globalMetrics.totalReviews || 0;
   const totalIssues = globalMetrics.totalIssues || 0;
@@ -93,6 +86,46 @@ export default function Header({ reviews = [], globalMetrics = {}, connected = t
         {/* Theme Toggle & System Time */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '12px' }}>
           <button
+            onClick={onToggleLeaderboard}
+            style={{
+              background: isLeaderboardView ? 'rgba(252, 211, 77, 0.2)' : 'var(--color-glass-border)',
+              border: isLeaderboardView ? '1px solid rgba(252, 211, 77, 0.5)' : '1px solid var(--color-glass-border-strong)',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontSize: '1rem',
+            }}
+            title={isLeaderboardView ? 'Back to Dashboard' : 'Leaderboard'}
+          >
+            🏆
+          </button>
+          
+          <button
+            onClick={onToggleSettings}
+            style={{
+              background: isSettingsView ? 'rgba(59, 130, 246, 0.2)' : 'var(--color-glass-border)',
+              border: isSettingsView ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid var(--color-glass-border-strong)',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontSize: '1rem',
+            }}
+            title={isSettingsView ? 'Back to Dashboard' : 'Settings'}
+          >
+            ⚙️
+          </button>
+          
+          <button
             onClick={() => setIsLightMode?.(!isLightMode)}
             style={{
               background: 'var(--color-glass-border)',
@@ -139,36 +172,7 @@ export default function Header({ reviews = [], globalMetrics = {}, connected = t
           >
             <LogOut size={16} />
           </button>
-
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-            }}
-          >
-          <span
-            style={{
-              color: 'var(--color-text-secondary)',
-              fontSize: '0.65rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '2px',
-            }}
-          >
-            System Time
-          </span>
-          <span
-            style={{
-              color: 'var(--color-text-secondary)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-            }}
-          >
-            <Clock />
-          </span>
         </div>
-      </div>
       </div>
     </header>
   );

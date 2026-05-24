@@ -57,6 +57,8 @@ function stripMarkdownFences(text) {
     .trim();
 }
 
+const { getRules } = require('../storage/store');
+
 /**
  * Analyzes code diff chunks using Gemini AI and returns a list of issues.
  * @param {Array<{ filename: string, status: string, additions: number, deletions: number, patch: string }>} fileDiffChunks
@@ -72,6 +74,9 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const promptText = buildPrompt(fileDiffChunks);
     const systemPrompts = [SECURITY_PROMPT, PERFORMANCE_PROMPT, STYLE_PROMPT];
+    
+    // Fetch custom rules
+    const rules = await getRules();
 
     console.log(`GeminiClient: Sending ${fileDiffChunks.length} file(s) to 3 Gemini agents...`);
 
@@ -79,7 +84,7 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
       try {
         const model = genAI.getGenerativeModel({
           model: MODEL_NAME,
-          systemInstruction: sysPrompt,
+          systemInstruction: sysPrompt + (rules ? `\n\nUSER CUSTOM RULES (MUST FOLLOW):\n${rules}` : ''),
         });
 
         const result = await model.generateContent(promptText);
@@ -103,4 +108,54 @@ async function analyzeCodeWithGemini(fileDiffChunks) {
   }
 }
 
-module.exports = { analyzeCodeWithGemini };
+/**
+ * Facilitates a conversational chat with the agent regarding a specific PR review.
+ * @param {object} review - The full review object from the DB
+ * @param {Array<{role: string, content: string}>} messages - Chat history
+ * @returns {Promise<string>}
+ */
+async function chatWithAgent(review, messages) {
+  try {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    
+    // Build context payload
+    const contextStr = JSON.stringify({
+      pr_title: review.pr_title,
+      repository: review.repository,
+      issues_found: review.issues
+    }, null, 2);
+
+    const systemInstruction = `You are CodeGuardian's Interactive Agent. 
+You are assisting a developer who is asking questions about a Pull Request review you recently conducted.
+Here is the context of the PR and the issues you found:
+${contextStr}
+
+Answer the user's questions clearly and concisely. If they ask for code rewrites, provide them. Use Markdown for code blocks. Be helpful but keep responses relatively short.`;
+
+    const model = genAI.getGenerativeModel({
+      model: MODEL_NAME,
+      systemInstruction,
+    });
+
+    // Format history for Gemini SDK
+    // Our messages are { role: 'user' | 'agent', content: '...' }
+    // Gemini expects { role: 'user' | 'model', parts: [{ text: '...' }] }
+    const history = messages.slice(0, -1).map(msg => ({
+      role: msg.role === 'agent' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const chat = model.startChat({ history });
+
+    // Send the latest message
+    const latestMessage = messages[messages.length - 1].content;
+    const result = await chat.sendMessage(latestMessage);
+    
+    return result.response.text();
+  } catch (err) {
+    console.error('GeminiClient error in chatWithAgent:', err.message);
+    throw new Error(`GeminiClient error in chatWithAgent: ${err.message}`);
+  }
+}
+
+module.exports = { analyzeCodeWithGemini, chatWithAgent };

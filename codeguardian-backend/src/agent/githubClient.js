@@ -167,10 +167,73 @@ async function postLineComment(owner, repo, pull_number, commit_id, path, line, 
   }
 }
 
+/**
+ * Applies a code fix directly to a file on a Pull Request branch via GitHub API.
+ * @param {string} owner
+ * @param {string} repo
+ * @param {number} pull_number
+ * @param {string} filename
+ * @param {string} patchSuggestion
+ * @param {number} line
+ * @returns {object} API response of the commit
+ */
+async function applyFixToPR(owner, repo, pull_number, filename, patchSuggestion, line) {
+  try {
+    if (DRY_RUN || !GITHUB_TOKEN) {
+      console.warn('GitHubClient: DRY_RUN or no token. Skipping actual file commit.');
+      return { commit: { html_url: '#' } };
+    }
+
+    // 1. Get PR metadata to find the head branch
+    const prMeta = await fetchPRMetadata(owner, repo, pull_number);
+    const branch = prMeta.head_branch;
+
+    // 2. Fetch the current file contents from that branch
+    const { data: fileData } = await axios.get(
+      `${BASE_URL}/repos/${owner}/${repo}/contents/${filename}?ref=${branch}`,
+      { headers: defaultHeaders() }
+    );
+
+    // fileData.content is base64 encoded
+    const decodedContent = Buffer.from(fileData.content, 'base64').toString('utf8');
+    
+    // 3. Apply the patch
+    const lines = decodedContent.split('\n');
+    // Basic heuristic: replace the exact line provided
+    if (line > 0 && line <= lines.length) {
+      lines[line - 1] = patchSuggestion;
+    } else {
+      throw new Error(`Line ${line} is out of bounds for file ${filename}`);
+    }
+    
+    const newContent = lines.join('\n');
+    const newContentBase64 = Buffer.from(newContent, 'utf8').toString('base64');
+
+    // 4. Commit the new file back to the branch
+    const commitMessage = `CodeGuardian AI Fix: ${filename}`;
+    const { data: commitData } = await axios.put(
+      `${BASE_URL}/repos/${owner}/${repo}/contents/${filename}`,
+      {
+        message: commitMessage,
+        content: newContentBase64,
+        sha: fileData.sha,
+        branch: branch
+      },
+      { headers: defaultHeaders() }
+    );
+
+    return commitData;
+  } catch (err) {
+    console.error(`GitHubClient error in applyFixToPR for ${filename}:`, err.response?.data?.message || err.message);
+    throw new Error(`GitHubClient error in applyFixToPR: ${err.message}`);
+  }
+}
+
 module.exports = {
   parsePRUrl,
   fetchPRMetadata,
   fetchPRDiff,
   postReviewComment,
   postLineComment,
+  applyFixToPR,
 };

@@ -17,7 +17,7 @@ function getAuthHeaders() {
 
 const client = axios.create({
   baseURL: API_URL,
-  timeout: 15_000,
+  timeout: 300_000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -38,6 +38,36 @@ export async function getReviews(params = {}) {
 
 export async function analyzeManual(prUrl) {
   const response = await client.post('/analyze', { prUrl });
+  return response.data;
+}
+
+export async function sendChatMessage(reviewId, messages) {
+  const response = await client.post(`/analyze/chat/${reviewId}`, { messages });
+  return response.data;
+}
+
+export async function applyIssueFix(reviewId, issue) {
+  const response = await client.post(`/analyze/fix/${reviewId}`, { issue });
+  return response.data;
+}
+
+export async function getRules() {
+  const response = await client.get('/settings/rules');
+  return response.data.rules;
+}
+
+export async function saveRules(rules) {
+  const response = await client.post('/settings/rules', { rules });
+  return response.data;
+}
+
+export async function getIssueDiff(reviewId, filename) {
+  const response = await client.get(`/analyze/diff/${reviewId}`, { params: { file: filename } });
+  return response.data.diff;
+}
+
+export async function getLeaderboard() {
+  const response = await client.get('/analytics/leaderboard');
   return response.data;
 }
 

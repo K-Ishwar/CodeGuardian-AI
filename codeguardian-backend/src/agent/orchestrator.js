@@ -4,6 +4,9 @@ const githubClient = require('./githubClient');
 const { parseDiff } = require('./diffParser');
 const { analyzeCodeWithGemini } = require('./geminiClient');
 const { addReview, getReviewById, updateReview } = require('../storage/store');
+const EventEmitter = require('events');
+
+const progressEmitter = new EventEmitter();
 
 const LOG_PREFIX = '[CodeGuardian]';
 
@@ -61,10 +64,17 @@ function buildReviewComment(review) {
  *
  * @param {string} prUrl  - Full GitHub PR URL
  * @param {string} source - "webhook" | "manual"
+ * @param {string} reviewId - The UUID for the review
  * @returns {Promise<object>} The completed (or failed) review record
  */
-async function runAnalysis(prUrl, source) {
+async function runAnalysis(prUrl, source, reviewId) {
   console.log(`${LOG_PREFIX} ▶ Starting analysis | source=${source} | url=${prUrl}`);
+  
+  const emitProgress = (step, progress, status = 'Processing') => {
+    progressEmitter.emit('progress', { id: reviewId, step, progress, status });
+  };
+
+  emitProgress('Parsing PR URL...', 5);
 
   // ─────────────────────────────────────────────
   // STEP 1 — Parse PR URL
@@ -78,7 +88,7 @@ async function runAnalysis(prUrl, source) {
   // ─────────────────────────────────────────────
   console.log(`${LOG_PREFIX} [Step 2] Creating pending review record...`);
   const review = {
-    id: uuidv4(),
+    id: reviewId,
     pr_title: '',
     repository: `${owner}/${repo}`,
     author: '',
@@ -92,6 +102,7 @@ async function runAnalysis(prUrl, source) {
   };
   await addReview(review);
   console.log(`${LOG_PREFIX} [Step 2] ✔ Review created with id=${review.id}`);
+  emitProgress('Fetching PR metadata...', 10);
 
   try {
     // ─────────────────────────────────────────────
@@ -112,6 +123,7 @@ async function runAnalysis(prUrl, source) {
     // ─────────────────────────────────────────────
     // STEP 4 — Fetch the diff
     // ─────────────────────────────────────────────
+    emitProgress('Fetching PR diff...', 20);
     console.log(`${LOG_PREFIX} [Step 4] Fetching PR diff...`);
     const rawDiff = await githubClient.fetchPRDiff(owner, repo, pull_number);
 
@@ -126,6 +138,7 @@ async function runAnalysis(prUrl, source) {
     // ─────────────────────────────────────────────
     // STEP 5 — Parse the diff
     // ─────────────────────────────────────────────
+    emitProgress('Parsing diff...', 30);
     console.log(`${LOG_PREFIX} [Step 5] Parsing diff...`);
     const fileDiffChunks = parseDiff(rawDiff);
     console.log(`${LOG_PREFIX} [Step 5] ✔ Found ${fileDiffChunks.length} file chunk(s)`);
@@ -134,12 +147,14 @@ async function runAnalysis(prUrl, source) {
       console.log(`${LOG_PREFIX} [Step 5] No actionable file chunks. Marking as Analyzed with 0 issues.`);
       await updateReview(review.id, { status: 'Analyzed' });
       review.status = 'Analyzed';
+      emitProgress('No issues found.', 100, 'Analyzed');
       return review;
     }
 
     // ─────────────────────────────────────────────
     // STEP 6 — Analyze with Gemini
     // ─────────────────────────────────────────────
+    emitProgress('Sending diff to AI for analysis...', 40);
     console.log(`${LOG_PREFIX} [Step 6] Sending diff to Gemini for analysis...`);
     const startTime = Date.now();
     const issues = await analyzeCodeWithGemini(fileDiffChunks);
@@ -149,6 +164,7 @@ async function runAnalysis(prUrl, source) {
     // ─────────────────────────────────────────────
     // STEP 7 — Compute metrics
     // ─────────────────────────────────────────────
+    emitProgress('Computing metrics...', 80);
     console.log(`${LOG_PREFIX} [Step 7] Computing metrics...`);
     const total_issues    = issues.length;
     const hours_saved     = total_issues * 0.25;
@@ -168,6 +184,7 @@ async function runAnalysis(prUrl, source) {
     // ─────────────────────────────────────────────
     // STEP 9 — Post comment back to GitHub
     // ─────────────────────────────────────────────
+    emitProgress('Posting review comment to GitHub...', 90);
     console.log(`${LOG_PREFIX} [Step 9] Posting review comment to GitHub...`);
     try {
       const commentBody = buildReviewComment(review);
@@ -202,6 +219,7 @@ async function runAnalysis(prUrl, source) {
     // STEP 10 — Return the completed review
     // ─────────────────────────────────────────────
     console.log(`${LOG_PREFIX} ✅ Analysis complete for review id=${review.id}`);
+    emitProgress('Analysis complete.', 100, 'Analyzed');
     return review;
 
   } catch (err) {
@@ -211,8 +229,9 @@ async function runAnalysis(prUrl, source) {
     console.error(`${LOG_PREFIX} ❌ Analysis failed: ${err.message}`);
     await updateReview(review.id, { status: 'Failed' });
     review.status = 'Failed';
+    emitProgress(`Analysis failed: ${err.message}`, 100, 'Failed');
     return review;
   }
 }
 
-module.exports = { runAnalysis };
+module.exports = { runAnalysis, progressEmitter };

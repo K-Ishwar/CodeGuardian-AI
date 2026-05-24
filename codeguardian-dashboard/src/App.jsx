@@ -4,6 +4,9 @@ import ReviewList from './components/ReviewList';
 import ReviewDetail from './components/ReviewDetail';
 import ManualInput from './components/ManualInput';
 import LoginView from './components/LoginView';
+import AgentChat from './components/AgentChat';
+import SettingsView from './components/SettingsView';
+import LeaderboardView from './components/LeaderboardView';
 import { useReviews } from './hooks/useReviews';
 import { analyzeManual } from './api/client';
 
@@ -36,7 +39,11 @@ export default function App() {
   } = useReviews();
   const [selectedId, setSelectedId] = useState(null);
   const [manualLoading, setManualLoading] = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState('');
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isLightMode, setIsLightMode] = useState(false);
+  const [isSettingsView, setIsSettingsView] = useState(false);
+  const [isLeaderboardView, setIsLeaderboardView] = useState(false);
   const [authToken, setAuthToken] = useState(localStorage.getItem('auth_token'));
   const [authLoading, setAuthLoading] = useState(false);
   const isFetchingAuth = useRef(false);
@@ -89,16 +96,38 @@ export default function App() {
 
   const handleManualSubmit = async (prUrl) => {
     setManualLoading(true);
+    setAnalysisStatus('Initializing analysis...');
+    setAnalysisProgress(0);
     try {
       const result = await analyzeManual(prUrl);
-      await refetch();
-      // Select the newly analyzed PR
-      if (result && result.review && result.review.id) {
-        setSelectedId(result.review.id);
-      }
+      
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('auth_token');
+      const eventSource = new EventSource(`${API_URL}/analyze/progress/${result.id}?token=${token}`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setAnalysisStatus(data.step);
+        setAnalysisProgress(data.progress);
+      };
+      
+      eventSource.addEventListener('end', async () => {
+        eventSource.close();
+        await refetch();
+        setSelectedId(result.id);
+        setManualLoading(false);
+      });
+
+      eventSource.onerror = (error) => {
+        console.error('SSE Error:', error);
+        eventSource.close();
+        setManualLoading(false);
+        // We still refetch just in case it actually finished
+        refetch();
+      };
+
     } catch (error) {
       alert('Failed to analyze PR: ' + (error.response?.data?.error || error.message));
-    } finally {
       setManualLoading(false);
     }
   };
@@ -136,20 +165,35 @@ export default function App() {
           localStorage.removeItem('auth_token');
           setAuthToken(null);
         }}
+        isSettingsView={isSettingsView}
+        onToggleSettings={() => {
+          setIsSettingsView(!isSettingsView);
+          setIsLeaderboardView(false);
+        }}
+        isLeaderboardView={isLeaderboardView}
+        onToggleLeaderboard={() => {
+          setIsLeaderboardView(!isLeaderboardView);
+          setIsSettingsView(false);
+        }}
       />
 
-      {/* ── Two-column main area ── */}
-      <main
-        style={{
-          display: 'flex',
-          flex: 1,
-          overflow: 'hidden',
-        }}
-      >
-        {/* Left panel — PR list and Manual Input */}
-        <div style={{ width: '40%', borderRight: '1px solid var(--color-bg-border)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <ReviewList
+      {/* ── Main Area ── */}
+      {isLeaderboardView ? (
+        <LeaderboardView />
+      ) : isSettingsView ? (
+        <SettingsView />
+      ) : (
+        <main
+          style={{
+            display: 'flex',
+            flex: 1,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Left panel — PR list and Manual Input */}
+          <div style={{ width: '40%', borderRight: '1px solid var(--color-bg-border)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <ReviewList
               reviews={reviews}
               selectedId={selectedId}
               onSelect={setSelectedId}
@@ -162,14 +206,28 @@ export default function App() {
               setSeverityFilter={setSeverityFilter}
             />
           </div>
-          <ManualInput onSubmit={handleManualSubmit} loading={manualLoading} />
+          <ManualInput 
+            onSubmit={handleManualSubmit} 
+            loading={manualLoading} 
+            progress={analysisProgress}
+            statusText={analysisStatus}
+          />
         </div>
 
-        {/* Right panel — PR detail */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <ReviewDetail review={selectedReview} />
-        </div>
-      </main>
+          {/* Right panel — PR detail */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <ReviewDetail review={selectedReview} />
+          </div>
+        </main>
+      )}
+
+      {/* Floating Agent Chat Widget */}
+      {!isSettingsView && !isLeaderboardView && selectedReview && (
+        <AgentChat  
+          reviewId={selectedReview.id} 
+          isAnalyzed={selectedReview.status?.toLowerCase() === 'analyzed' || selectedReview.status?.toLowerCase() === 'completed'} 
+        />
+      )}
     </div>
   );
 }

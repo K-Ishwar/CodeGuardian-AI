@@ -4,6 +4,8 @@ const config = require('./config');
 const webhookRoutes = require('./routes/webhook');
 const manualRoutes = require('./routes/manual');
 const { router: authRoutes, authenticate } = require('./routes/auth');
+const settingsRoutes = require('./routes/settings');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -34,6 +36,12 @@ app.use('/auth', authRoutes);
 
 // Manual analysis + review listing (protected)
 app.use('/', authenticate, manualRoutes);
+
+// Settings routes (protected)
+app.use('/settings', authenticate, settingsRoutes);
+
+// Analytics routes (protected)
+app.use('/analytics', authenticate, analyticsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

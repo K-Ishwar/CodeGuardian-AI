@@ -84,12 +84,19 @@ router.post('/github', async (req, res) => {
 
 // Middleware to protect routes
 function authenticate(req, res, next) {
+  let token;
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.query.token) {
+    // Fallback for EventSource (SSE) which cannot send custom headers
+    token = req.query.token;
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   try {
     const decoded = jwt.verify(token, JWT_SECRET || 'fallback_secret_for_dev');
     req.user = decoded;

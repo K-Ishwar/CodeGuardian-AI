@@ -5,7 +5,7 @@ import { useState } from 'react';
 // Accepts a GitHub PR URL and POSTs it to POST /analyze for manual analysis.
 // ---------------------------------------------------------------------------
 
-export default function ManualInput({ onSubmit, loading }) {
+export default function ManualInput({ onSubmit, loading, progress, statusText }) {
   const [inputValue, setInputValue] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -113,6 +113,24 @@ export default function ManualInput({ onSubmit, loading }) {
             {loading ? 'Analyzing...' : 'Analyze PR'}
           </button>
         </form>
+        {loading && statusText && (
+          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+              <span>{statusText}</span>
+              <span>{progress}%</span>
+            </div>
+            <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--color-glass-input)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div 
+                style={{ 
+                  width: `${progress}%`, 
+                  height: '100%', 
+                  backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                  transition: 'width 0.3s ease-out' 
+                }} 
+              />
+            </div>
+          </div>
+        )}
         {errorMsg && (
           <div style={{ color: 'var(--color-accent-red)', fontSize: '0.75rem', marginLeft: '2px' }}>
             {errorMsg}
