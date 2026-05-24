@@ -82,6 +82,22 @@ router.post('/github', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────
+// Guest Login (For Hackathon Judges)
+// ─────────────────────────────────────────────
+router.post('/guest', (req, res) => {
+  try {
+    const token = jwt.sign(
+      { username: 'HackathonJudge', avatar_url: 'https://github.com/ghost.png' },
+      JWT_SECRET || 'fallback_secret_for_dev',
+      { expiresIn: '24h' }
+    );
+    return res.status(200).json({ token, user: { username: 'HackathonJudge', avatar_url: 'https://github.com/ghost.png' } });
+  } catch (err) {
+    return res.status(500).json({ error: 'Guest login failed' });
+  }
+});
+
 // Middleware to protect routes
 function authenticate(req, res, next) {
   let token;

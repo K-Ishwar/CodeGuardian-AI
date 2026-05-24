@@ -1,7 +1,7 @@
 import React from 'react';
-import { GitPullRequest } from 'lucide-react';
+import { GitPullRequest, LogIn } from 'lucide-react';
 
-export default function LoginView() {
+export default function LoginView({ onGuestLogin }) {
   const handleLogin = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     if (!clientId) {
@@ -40,28 +40,55 @@ export default function LoginView() {
         <p style={{ margin: 0, color: 'var(--color-text-secondary)', textAlign: 'center', maxWidth: '300px' }}>
           Sign in to view and analyze your repositories.
         </p>
-        <button
-          onClick={handleLogin}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            backgroundColor: '#24292e',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '12px 24px',
-            fontSize: '1rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1b1f23'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#24292e'}
-        >
-          <GitPullRequest size={20} />
-          Login with GitHub
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '250px' }}>
+          <button
+            onClick={handleLogin}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              backgroundColor: '#24292e',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '1rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1b1f23'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#24292e'}
+          >
+            <GitPullRequest size={20} />
+            Login with GitHub
+          </button>
+
+          <button
+            onClick={onGuestLogin}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              backgroundColor: 'var(--color-glass-panel)',
+              color: 'var(--color-text-primary)',
+              border: '1px solid var(--color-glass-border-strong)',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '1rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-glass-border)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-glass-panel)'}
+          >
+            <LogIn size={20} />
+            Continue as Guest
+          </button>
+        </div>
       </div>
     </div>
   );

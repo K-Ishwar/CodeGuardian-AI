@@ -141,8 +141,27 @@ export default function App() {
     );
   }
 
+  const handleGuestLogin = async () => {
+    setAuthLoading(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/auth/guest`, { method: 'POST' });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+        setAuthToken(data.token);
+      } else {
+        alert('Guest login failed: ' + data.error);
+      }
+    } catch (err) {
+      alert('Guest login request failed: ' + err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   if (!authToken) {
-    return <LoginView />;
+    return <LoginView onGuestLogin={handleGuestLogin} />;
   }
 
   return (
